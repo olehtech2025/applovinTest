@@ -137,6 +137,43 @@ document.addEventListener('deviceready', async () => {
         return button;
     };
 
+    const safeCordovaRequire = moduleId => {
+        if (!window.cordova?.require) return null;
+        try {
+            return window.cordova.require(moduleId);
+        } catch (err) {
+            return null;
+        }
+    };
+
+    const getMaxSdk = () =>
+        window.AppLovinMAX ||
+        window.applovin ||
+        safeCordovaRequire('cordova-plugin-applovin-max.AppLovinMAX');
+
+    const hideAdView = (placement, format) => {
+        const adUnitId = getAdUnitId(placement);
+        const sdk = getMaxSdk();
+        if (!sdk) {
+            return false;
+        }
+
+        try {
+            if (format === 'mrec' && typeof sdk.hideMRec === 'function') {
+                adUnitId ? sdk.hideMRec(adUnitId) : sdk.hideMRec();
+                return true;
+            }
+            if (format === 'banner' && typeof sdk.hideBanner === 'function') {
+                adUnitId ? sdk.hideBanner(adUnitId) : sdk.hideBanner();
+                return true;
+            }
+        } catch (err) {
+            console.warn('[ADS] hideAdView failed', err);
+        }
+
+        return false;
+    };
+
     const createTestPanel = () => {
         const panel = document.createElement('div');
         panel.id = 'applovin-test-panel';
@@ -175,10 +212,10 @@ document.addEventListener('deviceready', async () => {
         panel.appendChild(log);
 
         const showPlacement = (type, placement, name) => async () => {
-            logToPanel(log, `Show ${name}...`);
+            //logToPanel(log, `Show ${name}...`);
             const result = await coreSDK.showAd(type, placement);
             console.log('[TEST][RESULT]', placement, result);
-            logToPanel(log, `${name}: ${result?.status || 'UNKNOWN'}`);
+            //logToPanel(log, `${name}: ${result?.status || 'UNKNOWN'}`);
         };
 
         buttons.appendChild(
@@ -205,18 +242,16 @@ document.addEventListener('deviceready', async () => {
 
         buttons.appendChild(
             createButton('Hide banner', () => {
-                if (window.AppLovinMAX?.hideBanner) {
-                    window.AppLovinMAX.hideBanner();
-                    logToPanel(log, 'Hide banner');
+                if (hideAdView('find_object_banner', 'banner')) {
+                    //logToPanel(log, 'Hide banner');
                 }
             })
         );
 
         buttons.appendChild(
             createButton('Hide MREC', () => {
-                if (window.AppLovinMAX?.hideMRec) {
-                    window.AppLovinMAX.hideMRec();
-                    logToPanel(log, 'Hide MREC');
+                if (hideAdView('mrec', 'mrec')) {
+                    //logToPanel(log, 'Hide MREC');
                 }
             })
         );

@@ -91,7 +91,7 @@ document.addEventListener('deviceready', async () => {
 
     // init SDK
     await coreSDK.init({
-        version: '1.0.25',
+        version: '1.0.80',
         skipAuth: true,
     });
 

@@ -34,7 +34,6 @@ document.addEventListener('deviceready', async () => {
         window.AppLovinMediator
     );
 
-    // Конфиг рекламы
     const adsConfig = {
         enabled: true,
         defaults: {

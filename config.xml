@@ -11,7 +11,4 @@
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
 
-    <platform name="android">
-        <preference name="AppLovinSdkKey" value="VB_0zSp_AExpJn74kcSysTwAMgnwt8wLq2TUvGUU9LxLT3HCmDiFMRQhEnowdyOOWK1fDsgn5XkIM0zpXqT2Fi" />
-    </platform>
 </widget>

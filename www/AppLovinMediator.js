@@ -9,6 +9,8 @@
             this.initialized = false;
             this.initPromise = null;
             this.max = null;
+            this.loadTimeoutMs = 15000;
+            this.showTimeoutMs = 15000;
         }
 
         async init(adsConfig) {
@@ -22,6 +24,11 @@
                 if (!sdk) {
                     throw new Error('APPLOVIN_MAX_NOT_AVAILABLE');
                 }
+
+                this.loadTimeoutMs =
+                    adsConfig?.defaults?.loadTimeoutMs ?? this.loadTimeoutMs;
+                this.showTimeoutMs =
+                    adsConfig?.defaults?.showTimeoutMs ?? this.showTimeoutMs;
 
                 const sdkKey = adsConfig?.mediators?.applovin?.sdkKey;
                 if (!sdkKey) {
@@ -70,6 +77,12 @@
             if (inFlight) return inFlight;
 
             const loadPromise = new Promise((resolve, reject) => {
+                const timeoutMs = this.getTimeoutMs(
+                    placementConfig,
+                    'loadTimeoutMs',
+                    this.loadTimeoutMs
+                );
+
                 const onLoaded = evt => {
                     if (evt?.adUnitId !== adUnitId) return;
                     this.ready.set(placement, true);
@@ -85,10 +98,16 @@
 
                 let loadedEvent = null;
                 let failedEvent = null;
+                let timeoutId = null;
 
                 const cleanup = () => {
-                    window.removeEventListener(loadedEvent, onLoaded);
-                    window.removeEventListener(failedEvent, onFailed);
+                    if (timeoutId) clearTimeout(timeoutId);
+                    if (loadedEvent) {
+                        window.removeEventListener(loadedEvent, onLoaded);
+                    }
+                    if (failedEvent) {
+                        window.removeEventListener(failedEvent, onFailed);
+                    }
                 };
 
                 if (type === 'rewarded') {
@@ -96,6 +115,10 @@
                     failedEvent = 'OnRewardedAdLoadFailedEvent';
                     window.addEventListener(loadedEvent, onLoaded);
                     window.addEventListener(failedEvent, onFailed);
+                    timeoutId = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('LOAD_TIMEOUT'));
+                    }, timeoutMs);
                     this.max.loadRewardedAd(adUnitId);
                     return;
                 }
@@ -105,6 +128,10 @@
                     failedEvent = 'OnInterstitialLoadFailedEvent';
                     window.addEventListener(loadedEvent, onLoaded);
                     window.addEventListener(failedEvent, onFailed);
+                    timeoutId = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('LOAD_TIMEOUT'));
+                    }, timeoutMs);
                     this.max.loadInterstitial(adUnitId);
                     return;
                 }
@@ -121,6 +148,10 @@
 
                 window.addEventListener(loadedEvent, onLoaded);
                 window.addEventListener(failedEvent, onFailed);
+                timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('LOAD_TIMEOUT'));
+                }, timeoutMs);
                 this.ensureAdViewCreated(adUnitId, format, placement, placementConfig);
             }).finally(() => {
                 this.loading.delete(adUnitId);
@@ -207,7 +238,10 @@
                     finish({ status: 'COMPLETED', canReward: false });
                 };
 
+                let timeoutId = null;
+
                 const cleanup = () => {
+                    if (timeoutId) clearTimeout(timeoutId);
                     window.removeEventListener(
                         'OnInterstitialAdFailedToDisplayEvent',
                         onFailedToDisplay
@@ -223,6 +257,10 @@
                     onFailedToDisplay
                 );
                 window.addEventListener('OnInterstitialHiddenEvent', onHidden);
+
+                timeoutId = setTimeout(() => {
+                    finish({ status: 'TIMEOUT', canReward: false });
+                }, this.getTimeoutMs(placementConfig, 'showTimeoutMs', this.showTimeoutMs));
 
                 this.max.showInterstitial(adUnitId, placement);
                 return;
@@ -280,7 +318,10 @@
                 }
             };
 
+            let timeoutId = null;
+
             const cleanup = () => {
+                if (timeoutId) clearTimeout(timeoutId);
                 window.removeEventListener('OnRewardedAdReceivedRewardEvent', onReward);
                 window.removeEventListener(
                     'OnRewardedAdFailedToDisplayEvent',
@@ -295,6 +336,10 @@
                 onFailedToDisplay
             );
             window.addEventListener('OnRewardedAdHiddenEvent', onHidden);
+
+            timeoutId = setTimeout(() => {
+                finish({ status: 'TIMEOUT', canReward: false });
+            }, this.getTimeoutMs(placementConfig, 'showTimeoutMs', this.showTimeoutMs));
 
             this.max.showRewardedAd(adUnitId, placement);
         }
@@ -331,6 +376,17 @@
                 placementConfig?.mrecPosition;
             if (position) return position;
             return format === 'mrec' ? 'centered' : 'bottom_center';
+        }
+
+        getTimeoutMs(placementConfig, key, fallback) {
+            const envConfig =
+                placementConfig?.cordova ||
+                placementConfig?.android ||
+                placementConfig?.ios ||
+                placementConfig;
+            const value = envConfig?.[key] ?? placementConfig?.[key];
+            if (typeof value === 'number' && value > 0) return value;
+            return fallback;
         }
 
         ensureAdViewCreated(adUnitId, format, placement, placementConfig) {

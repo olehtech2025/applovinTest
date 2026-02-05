@@ -23,6 +23,9 @@
 document.addEventListener('deviceready', async () => {
     console.log('[APP] deviceready');
 
+    const APPLOVIN_SDK_KEY =
+        'VB_0zSp_AExpJn74kcSysTwAMgnwt8wLq2TUvGUU9LxLT3HCmDiFMRQhEnowdyOOWK1fDsgn5XkIM0zpXqT2Fi';
+
     console.log('[CHECK] location =', window.location.href);
     console.log('[CHECK] cordova =', !!window.cordova);
     console.log('[CHECK] AppLovinMAX =', window.AppLovinMAX);
@@ -43,7 +46,7 @@ document.addEventListener('deviceready', async () => {
         },
         mediators: {
             applovin: {
-                sdkKey: 'VB_0zSp_AExpJn74kcSysTwAMgnwt8wLq2TUvGUU9LxLT3HCmDiFMRQhEnowdyOOWK1fDsgn5XkIM0zpXqT2Fi',
+                sdkKey: APPLOVIN_SDK_KEY,
             },
         },
         placements: {
@@ -94,9 +97,7 @@ document.addEventListener('deviceready', async () => {
         skipAuth: true,
     });
 
-    // init ads
-    await coreSDK.initAds();
-    console.log('[ADS] initAds completed');
+    console.log('[SDK] init completed');
 
     const placements = {
         aoa: { type: 'interstitial', name: 'AOA (interstitial)' },

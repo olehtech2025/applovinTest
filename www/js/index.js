@@ -30,9 +30,15 @@ document.addEventListener('deviceready', async () => {
     console.log('[CHECK] cordova =', !!window.cordova);
     console.log('[CHECK] AppLovinMAX =', window.AppLovinMAX);
     console.log('[CHECK] applovin =', window.applovin);
-    console.log('[CHECK] window =', window);
+    console.log('[CHECK] coreSDK =', window.coreSDK);
 
-    coreSDK.ads.registerMediator(
+    const sdk = window.coreSDK;
+    if (!sdk || !sdk.ads || typeof sdk.ads.registerMediator !== 'function') {
+        console.error('[APP] coreSDK is not ready', sdk);
+        return;
+    }
+
+    sdk.ads.registerMediator(
         'applovin',
         window.AppLovinMediator
     );
@@ -89,10 +95,10 @@ document.addEventListener('deviceready', async () => {
         },
     };
 
-    coreSDK.__setConfigForTests('ads', adsConfig);
+    sdk.__setConfigForTests('ads', adsConfig);
 
     // init SDK
-    await coreSDK.init({
+    await sdk.init({
         version: '1.0.80',
         skipAuth: true,
     });
@@ -213,7 +219,7 @@ document.addEventListener('deviceready', async () => {
 
         const showPlacement = (type, placement, name) => async () => {
             //logToPanel(log, `Show ${name}...`);
-            const result = await coreSDK.showAd(type, placement);
+            const result = await sdk.showAd(type, placement);
             console.log('[TEST][RESULT]', placement, result);
             //logToPanel(log, `${name}: ${result?.status || 'UNKNOWN'}`);
         };

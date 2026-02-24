@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="org.apache.cordova.hellocordova" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Hello Cordova</name>
+    <name>Find Objects</name>
     <description>
-        A sample Apache Cordova application that responds to the deviceready event.
+        Find Objects game with AppLovin MAX ads.
     </description>
     <author email="dev@cordova.apache.org" href="https://cordova.apache.org">
         Apache Cordova Team
@@ -10,5 +10,9 @@
     <content src="index.html" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <allow-navigation href="https://stage-configs.artintgames.com/*" />
+    <allow-navigation href="https://stage-auth.artintgames.com/*" />
+    <allow-navigation href="https://stage-profile.artintgames.com/*" />
+    <access origin="*" />
 
 </widget>

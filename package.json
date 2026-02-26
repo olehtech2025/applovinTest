@@ -6,19 +6,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-
     "gen": "python3 scripts/build-testpic.py",
-
     "build": "npm run gen && cordova build android",
-
     "run": "adb -s emulator-5556 install -r platforms/android/app/build/outputs/apk/debug/app-debug.apk && adb -s emulator-5556 shell am start -n org.apache.cordova.hellocordova/.MainActivity",
-
     "build:run": "npm run build && npm run run",
-
     "log": "adb logcat | grep -E '(chromium|AppLovin)'",
     "log:ads": "adb logcat | grep -i applovin",
     "log:game": "adb logcat | grep chromium | grep -E '(GAME|ADS|BOOT|INIT|AdManager)'",
-
     "start:applovin": "adb logcat | grep -i applovin",
     "dev:android": "cordova clean && cordova prepare android && cordova build android && cordova run android --emulator",
     "install:testpic": "adb wait-for-device && adb install -r platforms/android/app/build/outputs/apk/debug/app-debug.apk && adb shell monkey -p org.apache.cordova.hellocordova -c android.intent.category.LAUNCHER 1",
@@ -31,14 +25,21 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "cordova-android": "^14.0.1",
-    "cordova-plugin-applovin-max": "^2.1.0"
+    "cordova-plugin-applovin-max": "^2.1.0",
+    "cordova-plugin-googleplus": "^8.5.2",
+    "cordova-plugin-splashscreen": "^6.0.1"
   },
   "cordova": {
     "platforms": [
       "android"
     ],
     "plugins": {
-      "cordova-plugin-applovin-max": {}
+      "cordova-plugin-applovin-max": {},
+      "cordova-plugin-splashscreen": {},
+      "cordova-plugin-googleplus": {
+        "REVERSED_CLIENT_ID": "com.googleusercontent.apps.660405658458-a7nlkksb8s2b8341bubgien9ojgei5f9",
+        "PLAY_SERVICES_VERSION": "15.0.1"
+      }
     }
   }
 }

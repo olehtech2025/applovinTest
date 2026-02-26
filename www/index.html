@@ -920,6 +920,21 @@
     margin: 0 auto;
   }
 
+  /* In Cordova the banner is a native view — hide HTML placeholders */
+  body.is-cordova .win-ad,
+  body.is-cordova .menu-ad-banner,
+  body.is-cordova .game-ad-banner {
+    display: none !important;
+  }
+
+  /* In Cordova add bottom padding so native AppLovin banner (50dp) doesn't cover buttons */
+  body.is-cordova {
+    --safeB: 60px;
+  }
+  body.is-cordova .overlay-win {
+    padding-bottom: 74px;
+  }
+
   .win-ad {
     width: 100%;
     min-height: 52px;
@@ -2481,16 +2496,6 @@
 </style>
 </head>
 <body>
-
-<!-- SPLASH SCREEN -->
-<!-- DEBUG: quick start button, visible on all screens -->
-<button id="debugStartLevel1Btn" style="
-  position:fixed;bottom:80px;right:16px;z-index:9999;
-  background:#7c3aed;color:#fff;border:none;border-radius:12px;
-  padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);opacity:0.9;
-  display:none;
-">▶ Level 1</button>
 
 <div id="splashScreen" class="screen active">
   <div class="splash-wrapper">
@@ -5817,6 +5822,7 @@
             console.log('[BOOT] waiting for deviceready...');
             document.addEventListener('deviceready', function() {
               console.log('[BOOT] deviceready fired!');
+              document.body.classList.add('is-cordova');
               doInit();
             }, { once: true });
           } else {
@@ -5832,5 +5838,37 @@
       tryInitSDK();
     })();
   </script>
+<script>
+(function() {
+  if (!window.cordova) return;
+  var WEB_CLIENT_ID = '660405658458-a7nlkksb8s2b8341bubgien9ojgei5f9.apps.googleusercontent.com';
+  document.addEventListener('deviceready', function() {
+    if (!window.plugins || !window.plugins.googleplus) {
+      console.warn('[GoogleAuth] cordova-plugin-googleplus not available');
+      return;
+    }
+    if (typeof coreSDK === 'undefined') {
+      console.warn('[GoogleAuth] coreSDK not available for Google auth override');
+      return;
+    }
+    coreSDK.getGoogleIdToken = function() {
+      return new Promise(function(resolve, reject) {
+        window.plugins.googleplus.login(
+          { webClientId: WEB_CLIENT_ID, offline: true },
+          function(obj) {
+            console.log('[GoogleAuth] native login OK:', obj.email);
+            resolve({ credential: obj.idToken });
+          },
+          function(err) {
+            console.error('[GoogleAuth] native login failed:', err);
+            reject(new Error('Google Sign-In failed: ' + String(err)));
+          }
+        );
+      });
+    };
+    console.log('[GoogleAuth] Cordova native Google Sign-In override installed');
+  }, { once: true });
+})();
+</script>
 </body>
 </html>

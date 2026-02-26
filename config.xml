@@ -8,6 +8,31 @@
         Apache Cordova Team
     </author>
     <content src="index.html" />
+
+    <icon src="assets/Icon.png" />
+
+    <platform name="android">
+        <icon src="assets/Icon.png" density="ldpi" width="36" height="36" />
+        <icon src="assets/Icon.png" density="mdpi" width="48" height="48" />
+        <icon src="assets/Icon.png" density="hdpi" width="72" height="72" />
+        <icon src="assets/Icon.png" density="xhdpi" width="96" height="96" />
+        <icon src="assets/Icon.png" density="xxhdpi" width="144" height="144" />
+        <icon src="assets/Icon.png" density="xxxhdpi" width="192" height="192" />
+        <splash src="assets/splash_screen.png" density="ldpi" />
+        <splash src="assets/splash_screen.png" density="mdpi" />
+        <splash src="assets/splash_screen.png" density="hdpi" />
+        <splash src="assets/splash_screen.png" density="xhdpi" />
+        <splash src="assets/splash_screen.png" density="xxhdpi" />
+        <splash src="assets/splash_screen.png" density="xxxhdpi" />
+    </platform>
+
+    <hook type="after_prepare" src="hooks/after_prepare/patch-android-splash.js" />
+
+    <preference name="SplashScreen" value="screen" />
+    <preference name="SplashScreenDelay" value="2000" />
+    <preference name="AutoHideSplashScreen" value="true" />
+    <preference name="FadeSplashScreen" value="true" />
+
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-navigation href="https://stage-configs.artintgames.com/*" />

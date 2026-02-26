@@ -3045,6 +3045,13 @@
             </div>
             <svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
+          <div class="settings-link-item" data-link="exit-menu">
+            <div class="settings-row-left">
+              <svg class="settings-row-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M10 17l5-5-5-5" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 12H3" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="settings-link-label">Exit to menu</span>
+            </div>
+            <svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </div>
       </div>
 
@@ -3242,6 +3249,7 @@
   const BG_HEIGHT = 1536;
 
   const SOUND_KEY       = 'findit_sound_enabled';
+  const MUSIC_KEY       = 'findit_music_enabled';
   const PROGRESS_KEY    = 'findit_max_level';
   const SCORE_KEY       = 'findit_total_score';
 
@@ -3255,7 +3263,7 @@
 
   // AUDIO LAZY LOADING
   const AUDIO_URLS = {
-    menuMusic: 'https://stage-configs.artintgames.com/v1/storage/view/9/home music.mp3',
+    // menuMusic: null, // TODO: add new music file here
     hit: 'https://stage-configs.artintgames.com/v1/storage/view/9/hit.mp3',
     miss: 'https://stage-configs.artintgames.com/v1/storage/view/9/miss.mp3',
     win: 'https://stage-configs.artintgames.com/v1/storage/view/9/win.mp3',
@@ -3415,6 +3423,9 @@
 
   let gameOver    = false;
   let soundEnabled = true;
+  let musicEnabled = false;
+  // 'google' | 'guest' — tracks how the current user is authenticated
+  let authMethod = localStorage.getItem('findit_auth_method') || 'guest';
   let hintsLeft   = 2;
   const maxHints  = 2;
   let overlayMode = 'restart';
@@ -3676,7 +3687,7 @@
   }
 
   function startMenuMusic() {
-    if (!soundEnabled) return;
+    if (!musicEnabled) return;
     const menuMusic = getAudio('menuMusic');
     if (currentMusic && currentMusic !== menuMusic) {
       try { currentMusic.pause(); } catch (e) {}
@@ -3688,7 +3699,7 @@
   }
 
   function startLevelMusic(index) {
-    if (!soundEnabled) return;
+    if (!musicEnabled) return;
     const m = getLevelMusic(index);
     if (!m) return;
     if (currentMusic && currentMusic !== m) {
@@ -3912,31 +3923,18 @@
   }
 
   // Tutorial done logic (per-user)
-  const TUTORIAL_DONE_KEY_PREFIX = 'findit_tutorial_done_';
+  const TUTORIAL_DONE_KEY = 'findit_tutorial_done';
 
-  function getTutorialDoneKeyForCurrentUser() {
-    const emailKey = (playerEmail || '').trim().toLowerCase();
-    const safe = emailKey || (playerName || 'player').trim().toLowerCase().replace(/\s+/g, '_');
-    return TUTORIAL_DONE_KEY_PREFIX + safe;
+  function hasUserCompletedTutorial() {
+    return localStorage.getItem(TUTORIAL_DONE_KEY) === 'true';
   }
 
-  async function hasUserCompletedTutorial() {
-    const k = getTutorialDoneKeyForCurrentUser();
-    try {
-      const { value } = await storage.get(k);
-      return value === 'true';
-    } catch(e) {
-      return false;
-    }
+  function markUserCompletedTutorial() {
+    localStorage.setItem(TUTORIAL_DONE_KEY, 'true');
   }
 
-  async function markUserCompletedTutorial() {
-    const k = getTutorialDoneKeyForCurrentUser();
-    try { await storage.set(k, 'true'); } catch(e) {}
-  }
-
-  async function goAfterLogin() {
-    if (await hasUserCompletedTutorial()) {
+  function goAfterLogin() {
+    if (hasUserCompletedTutorial()) {
       setActiveScreen(menuScreen);
       applyLevelInfoToMenu(currentLevelIndex);
       updateScoreUI();
@@ -3974,7 +3972,7 @@
       playerAvatarSymbol = storedAvatar || '';
       updatePlayerUI();
       hideLoginOverlay();
-      goAfterLogin().catch(() => {});
+      goAfterLogin();
       return;
     }
 
@@ -3984,7 +3982,7 @@
       playerAvatarSymbol = '';
       updatePlayerUI();
       hideLoginOverlay();
-      goAfterLogin().catch(() => {});
+      goAfterLogin();
       return;
     }
 
@@ -4029,14 +4027,23 @@
     if (loginGoogleBtn) loginGoogleBtn.style.display = 'flex';
   }
 
-  // Boot flow (unchanged)
-  setTimeout(() => {
-    setActiveScreen(tutorialScreen);
-    // Only show login overlay if not authenticated
+  // Boot flow
+  setTimeout(async () => {
+    // Auto-login as guest if not authenticated
     const isAuthenticated = !!(coreSDK.systemParams && coreSDK.systemParams.authToken);
     if (!isAuthenticated) {
-      showLoginOverlay();
+      try {
+        await coreSDK.loginAsGuest();
+        authMethod = 'guest';
+        localStorage.setItem('findit_auth_method', 'guest');
+        applyAuthUI();
+        updatePlayerUI();
+      } catch (e) {
+        console.warn('[Auth] Auto guest login failed:', e);
+      }
     }
+    // Show tutorial only on first launch; menu on repeat launches
+    goAfterLogin();
   }, 1500);
 
   function applyLevelInfoToMenu(index) {
@@ -4049,13 +4056,17 @@
 
   async function setSoundEnabled(value) {
     soundEnabled = value;
-    soundToggle.textContent = soundEnabled ? 'On' : 'Off';
-    soundToggle.classList.toggle('on',  soundEnabled);
-    soundToggle.classList.toggle('off', !soundEnabled);
+    soundToggle.checked = soundEnabled;
     try { await storage.set(SOUND_KEY, String(soundEnabled)); } catch (e) {}
     saveGameState().catch(() => {});
+  }
 
-    if (!soundEnabled) {
+  async function setMusicEnabled(value) {
+    musicEnabled = value;
+    musicToggle.checked = musicEnabled;
+    try { await storage.set(MUSIC_KEY, String(musicEnabled)); } catch (e) {}
+
+    if (!musicEnabled) {
       stopCurrentMusic();
     } else {
       if (menuScreen.classList.contains('active') || scoreScreen.classList.contains('active')) {
@@ -4218,9 +4229,10 @@
     if (!gsLoaded) {
       // Fallback: load from KV storage
       try {
-        const data = await storage.getMany([SOUND_KEY, PROGRESS_KEY, SCORE_KEY]);
+        const data = await storage.getMany([SOUND_KEY, MUSIC_KEY, PROGRESS_KEY, SCORE_KEY]);
 
         soundEnabled = data[SOUND_KEY] === null ? true : data[SOUND_KEY] === 'true';
+        musicEnabled = data[MUSIC_KEY] === null ? false : data[MUSIC_KEY] === 'true';
 
         if (data[PROGRESS_KEY] !== null) {
           const n = parseInt(data[PROGRESS_KEY], 10);
@@ -4233,20 +4245,23 @@
         }
       } catch (e) {
         soundEnabled = true;
+        musicEnabled = false;
         maxUnlockedLevel = 1;
         totalScore = 0;
       }
     } else {
-      // Load sound setting from KV as well (in case gamestate doesn't have it yet)
+      // Load sound/music settings from KV as well (in case gamestate doesn't have it yet)
       try {
-        const { value } = await storage.get(SOUND_KEY);
-        if (value !== null) soundEnabled = value === 'true';
+        const data = await storage.getMany([SOUND_KEY, MUSIC_KEY]);
+        if (data[SOUND_KEY] !== null) soundEnabled = data[SOUND_KEY] === 'true';
+        if (data[MUSIC_KEY] !== null) musicEnabled = data[MUSIC_KEY] === 'true';
       } catch (_) {}
     }
 
     currentLevelIndex = maxUnlockedLevel - 1;
 
     await setSoundEnabled(soundEnabled);
+    await setMusicEnabled(musicEnabled);
     await loadPlayerFromStorage();
     applyLevelInfoToMenu(currentLevelIndex);
     updateScoreUI();
@@ -4657,7 +4672,10 @@
     try {
       setAuthLoading(true);
       await coreSDK.loginAsGuest();
+      authMethod = 'guest';
+      localStorage.setItem('findit_auth_method', 'guest');
       applyAuthUI();
+      hideLoginOverlay();
     } catch (err) {
       console.error('Guest login error:', err);
       authStatusEl.textContent = 'Login failed';
@@ -4671,7 +4689,11 @@
       setAuthLoading(true);
       const { credential } = await coreSDK.getGoogleIdToken();
       await coreSDK.loginWithGoogle(credential);
+      authMethod = 'google';
+      localStorage.setItem('findit_auth_method', 'google');
       applyAuthUI();
+      updatePlayerUI();
+      hideLoginOverlay();
     } catch (err) {
       console.error('Google login error:', err);
       authStatusEl.textContent = 'Login failed';
@@ -4685,14 +4707,14 @@
       setAuthLoading(true);
       await coreSDK.logout();
     } catch (err) {
-      // 404 means the endpoint isn't implemented yet — treat as success and clear locally
       console.warn('[Logout] SDK call failed (probably 404), clearing local auth:', err.message);
     } finally {
-      // Always clear auth state locally regardless of server response
       if (coreSDK.systemParams) coreSDK.systemParams.authToken = null;
+      authMethod = 'guest';
+      localStorage.setItem('findit_auth_method', 'guest');
       setAuthLoading(false);
       applyAuthUI();
-      showLoginOverlay();
+      if (profileOverlay) profileOverlay.classList.remove('visible');
     }
   }
 
@@ -4714,10 +4736,10 @@
   }
 
   function handleProfileOpen() {
-    const status = getCurrentAuthStatus();
-    if (status && status.isAuthenticated) {
+    if (authMethod === 'google') {
       if (profileOverlay) profileOverlay.classList.add('visible');
     } else {
+      // Guest or unauthenticated — show Sign up popup
       showLoginOverlay();
     }
   }
@@ -4802,6 +4824,28 @@
   });
 
   soundToggle.addEventListener('click', () => setSoundEnabled(!soundEnabled).catch(() => {}));
+  musicToggle.addEventListener('click', () => setMusicEnabled(!musicEnabled).catch(() => {}));
+
+  settingsLinks && settingsLinks.addEventListener('click', (e) => {
+    const item = e.target.closest('.settings-link-item');
+    if (!item) return;
+    const link = item.dataset.link;
+    if (link === 'exit-menu') {
+      // Close settings
+      settingsOverlay.classList.remove('visible');
+      // Clear win/lose overlay so it doesn't show on top of menu
+      overlay.classList.remove('visible', 'win', 'lose');
+      // Reset game state
+      gameOver = false;
+      // Go to main menu
+      stopCurrentMusic();
+      setActiveScreen(menuScreen);
+      applyLevelInfoToMenu(currentLevelIndex);
+      updateScoreUI();
+      updatePlayerUI();
+      startMenuMusic();
+    }
+  });
 
   // Hint logic (game): if 0 -> show ad stub, reward +1 hint and use immediately
   function useHintNow() {
@@ -4958,7 +5002,7 @@
   });
 
   function finishTutorialToMenu(){
-    markUserCompletedTutorial().catch(() => {});
+    markUserCompletedTutorial();
 
     tutorialOverlay.classList.remove('visible');
     tutorialGuideOverlay.classList.remove('visible');
@@ -4972,6 +5016,7 @@
   tutorialSkipBtn.addEventListener('click', (e) => { e.stopPropagation(); finishTutorialToMenu(); });
 
   function initTutorial() {
+    setActiveScreen(tutorialScreen);
     tutorialFound = 0;
     tutorialHints = 2;
     tutorialGuideActive = false;
@@ -5003,17 +5048,16 @@
 
   loginAutofillBtn.addEventListener('click', async () => {
     loginErrorText.textContent = '';
-    playerEmail = '';
-    if (!playerName || playerName === 'Player') playerName = 'Guest';
     try {
       await coreSDK.loginAsGuest();
+      authMethod = 'guest';
+      localStorage.setItem('findit_auth_method', 'guest');
     } catch (err) {
       console.warn('Guest SDK login failed:', err);
     }
     applyAuthUI();
     updatePlayerUI();
     hideLoginOverlay();
-    goAfterLogin().catch(() => {});
   });
 
   loginGoogleBtn.addEventListener('click', async () => {
@@ -5021,10 +5065,11 @@
     try {
       const { credential } = await coreSDK.getGoogleIdToken();
       await coreSDK.loginWithGoogle(credential);
+      authMethod = 'google';
+      localStorage.setItem('findit_auth_method', 'google');
       applyAuthUI();
       updatePlayerUI();
       hideLoginOverlay();
-      goAfterLogin().catch(() => {});
     } catch (err) {
       console.error('Google login error:', err);
       loginErrorText.textContent = 'Google login failed. Try again.';

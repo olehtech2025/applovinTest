@@ -9,21 +9,21 @@
     </author>
     <content src="index.html" />
 
-    <icon src="assets/Icon.png" />
+    <icon src="res/android/xxxhdpi.png" />
 
     <platform name="android">
-        <icon src="assets/Icon.png" density="ldpi" width="36" height="36" />
-        <icon src="assets/Icon.png" density="mdpi" width="48" height="48" />
-        <icon src="assets/Icon.png" density="hdpi" width="72" height="72" />
-        <icon src="assets/Icon.png" density="xhdpi" width="96" height="96" />
-        <icon src="assets/Icon.png" density="xxhdpi" width="144" height="144" />
-        <icon src="assets/Icon.png" density="xxxhdpi" width="192" height="192" />
-        <splash src="assets/splash_screen.png" density="ldpi" />
-        <splash src="assets/splash_screen.png" density="mdpi" />
-        <splash src="assets/splash_screen.png" density="hdpi" />
-        <splash src="assets/splash_screen.png" density="xhdpi" />
-        <splash src="assets/splash_screen.png" density="xxhdpi" />
-        <splash src="assets/splash_screen.png" density="xxxhdpi" />
+        <icon src="res/android/ldpi.png"    density="ldpi" />
+        <icon src="res/android/mdpi.png"    density="mdpi" />
+        <icon src="res/android/hdpi.png"    density="hdpi" />
+        <icon src="res/android/xhdpi.png"   density="xhdpi" />
+        <icon src="res/android/xxhdpi.png"  density="xxhdpi" />
+        <icon src="res/android/xxxhdpi.png" density="xxxhdpi" />
+        <splash src="res/screen/android/ldpi.png"    density="ldpi" />
+        <splash src="res/screen/android/mdpi.png"    density="mdpi" />
+        <splash src="res/screen/android/hdpi.png"    density="hdpi" />
+        <splash src="res/screen/android/xhdpi.png"   density="xhdpi" />
+        <splash src="res/screen/android/xxhdpi.png"  density="xxhdpi" />
+        <splash src="res/screen/android/xxxhdpi.png" density="xxxhdpi" />
     </platform>
 
     <hook type="after_prepare" src="hooks/after_prepare/patch-android-splash.js" />
